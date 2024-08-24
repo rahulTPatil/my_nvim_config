@@ -102,7 +102,21 @@ require("lazy").setup({
                 },
             },
         },
-        "lewis6991/gitsigns.nvim",
+        "tpope/vim-fugitive",
+        {
+            'lewis6991/gitsigns.nvim',
+            opts = {
+                signs = {
+                    add = { text = '+' },
+                    change = { text = '~' },
+                    delete = { text = '_' },
+                    topdelete = { text = '‾' },
+                    changedelete = { text = '~' },
+                },
+                auto_attach = true,
+            },
+        },
+
         { -- LSP Configuration & Plugins
             'neovim/nvim-lspconfig',
             dependencies = {
@@ -473,6 +487,7 @@ local vcs = function()
   }
 end
 
+
 Statusline = {}
 
 Statusline.active = function()
@@ -485,7 +500,9 @@ Statusline.active = function()
         filename(),
         "%#Normal#",
         lsp(),
+        "%#Normal# ",
         vcs(),
+        "%#Normal# ",
         "%=%#StatusLineExtra#",
         filetype(),
         lineinfo(),
