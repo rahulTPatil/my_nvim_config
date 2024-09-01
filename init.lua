@@ -3,9 +3,9 @@ vim.g.mapleader = " "
 vim.keymap.set("n", "<leader>ef", vim.cmd.Ex)
 vim.g.maplocalleader = "\\"
 vim.keymap.set('n', '<leader>u', vim.cmd.UndotreeToggle)
-vim.keymap.set('n', '<leader>ff', '<cmd>Telescope find_files theme=dropdown prompt_prefix=🔍<CR>', {})
-vim.keymap.set('n', '<leader>fs', '<cmd>Telescope live_grep theme=dropdown<CR>', {})
-vim.keymap.set('n', '<leader>gd', function() vim.lsp.buf.definitions() end, {})
+--vim.keymap.set('n', '<leader>ff', '<cmd>Telescope find_files theme=dropdown prompt_prefix=🔍<CR>', {})
+--vim.keymap.set('n', '<leader>fs', '<cmd>Telescope live_grep theme=dropdown<CR>', {})
+--vim.keymap.set('n', '<leader>gd', function() vim.lsp.buf.definitions() end, {})
 
 local opts = { noremap = true, silent = true }
 vim.keymap.set('n', '<space>e', vim.diagnostic.open_float, opts)
@@ -13,8 +13,14 @@ vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, opts)
 vim.keymap.set('n', ']d', vim.diagnostic.goto_next, opts)
 vim.keymap.set('n', '<space>q', vim.diagnostic.setloclist, opts)
 
+vim.cmd [[autocmd BufWritePre * lua vim.lsp.buf.format()]]
+
 vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv")
 vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv")
+
+-- Move around the files
+vim.keymap.set('n', ',', '<cmd>bprev<CR>')
+vim.keymap.set('n', '.', '<cmd>bnext<CR>')
 
 vim.keymap.set("n", "J", "mzJ`z")
 vim.keymap.set("n", "<C-d>", "<C-d>zz")
@@ -53,10 +59,37 @@ require("lazy").setup({
     spec = {
         -- add your plugins here
         "mbbill/undotree",
+        "numToStr/Comment.nvim",
         {
             'nvim-telescope/telescope.nvim',
             tag = '0.1.8',
-            dependencies = { 'nvim-lua/plenary.nvim' }
+            dependencies = { 'nvim-lua/plenary.nvim' },
+            config = function()
+                require('telescope').setup({
+                    pickers = {
+                        find_files = {
+                            theme = "dropdown",
+                            prompt_prefix = '🔍',
+                        },
+                        live_grep = {
+                            theme = "dropdown",
+                        },
+                        buffers = {
+                            theme = "dropdown",
+                        },
+                    },
+
+                })
+                local builtin = require 'telescope.builtin'
+                vim.keymap.set('n', '<leader>fh', builtin.help_tags, { desc = '[F]ind [H]elp' })
+                vim.keymap.set('n', '<leader>fk', builtin.keymaps, { desc = '[F]ind [K]eymaps' })
+                vim.keymap.set('n', '<leader>ff', builtin.find_files, { desc = '[F]ind [F]iles' })
+                vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
+                vim.keymap.set('n', '<leader>fs', builtin.live_grep, { desc = '[F]ind by [S]earch' })
+                vim.keymap.set('n', '<leader>fn', function()
+                    builtin.find_files { cwd = vim.fn.stdpath 'config' }
+                end, { desc = '[F]ind [N]eovim files' })
+            end,
         },
         {
             "nvim-treesitter/nvim-treesitter",
@@ -142,64 +175,22 @@ require("lazy").setup({
                         local map = function(keys, func, desc)
                             vim.keymap.set('n', keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
                         end
-
                         map('gd', require('telescope.builtin').lsp_definitions, '[G]oto [D]efinition')
-
                         map('gr', require('telescope.builtin').lsp_references, '[G]oto [R]eferences')
-
                         map('gI', require('telescope.builtin').lsp_implementations, '[G]oto [I]mplementation')
-
                         map('<leader>D', require('telescope.builtin').lsp_type_definitions, 'Type [D]efinition')
-
                         map('<leader>ds', require('telescope.builtin').lsp_document_symbols, '[D]ocument [S]ymbols')
-
                         map('<leader>ws', require('telescope.builtin').lsp_dynamic_workspace_symbols,
                             '[W]orkspace [S]ymbols')
-
                         map('<leader>rn', vim.lsp.buf.rename, '[R]e[n]ame')
-
                         map('<leader>ca', vim.lsp.buf.code_action, '[C]ode [A]ction')
-
                         map('K', vim.lsp.buf.hover, 'Hover Documentation')
-
                         map('gD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
-
-                        local client = vim.lsp.get_client_by_id(event.data.client_id)
-                        if client and client.server_capabilities.documentHighlightProvider then
-                            local highlight_augroup = vim.api.nvim_create_augroup('kickstart-lsp-highlight',
-                                { clear = false })
-                            vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
-                                buffer = event.buf,
-                                group = highlight_augroup,
-                                callback = vim.lsp.buf.document_highlight,
-                            })
-
-                            vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
-                                buffer = event.buf,
-                                group = highlight_augroup,
-                                callback = vim.lsp.buf.clear_references,
-                            })
-
-                            vim.api.nvim_create_autocmd('LspDetach', {
-                                group = vim.api.nvim_create_augroup('kickstart-lsp-detach', { clear = true }),
-                                callback = function(event2)
-                                    vim.lsp.buf.clear_references()
-                                    vim.api.nvim_clear_autocmds { group = 'kickstart-lsp-highlight', buffer = event2.buf }
-                                end,
-                            })
-                        end
-
-                        if client and client.server_capabilities.inlayHintProvider and vim.lsp.inlay_hint then
-                            map('<leader>th', function()
-                                vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
-                            end, '[T]oggle Inlay [H]ints')
-                        end
                     end,
                 })
 
                 local capabilities = vim.lsp.protocol.make_client_capabilities()
                 capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
-
                 local servers = {
                     -- clangd = {},
                     gopls = {
@@ -363,9 +354,10 @@ local modes = {
     ["v"] = "VISUAL",
     ["V"] = "VISUAL LINE",
     [""] = "VISUAL BLOCK",
+    "SELECT BLOCK",
     ["s"] = "SELECT",
     ["S"] = "SELECT LINE",
-    [""] = "SELECT BLOCK",
+    --[""] = "SELECT BLOCK",
     ["i"] = "INSERT",
     ["ic"] = "INSERT",
     ["R"] = "REPLACE",
@@ -533,3 +525,11 @@ vim.api.nvim_exec([[
   au WinEnter,BufEnter,FileType NvimTree setlocal statusline=%!v:lua.Statusline.short()
   augroup END
 ]], false)
+
+-- Highlight on Yank
+vim.cmd [[
+    augroup highlight_yank
+    autocmd!
+    au TextYankPost * silent! lua vim.highlight.on_yank({higroup="Visual", timeout=350})
+    augroup END
+    ]]
