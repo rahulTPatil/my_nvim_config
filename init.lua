@@ -444,18 +444,22 @@ local function lsp()
     local info = ""
 
     if count["errors"] ~= 0 then
-        errors = " %#LspDiagnosticsSignError#x" .. count["errors"]
+        errors = " %#LspDiagnosticsSignError#E" .. count["errors"]
     end
     if count["warnings"] ~= 0 then
-        warnings = " %#LspDiagnosticsSignWarning# " .. count["warnings"]
+        warnings = " %#LspDiagnosticsSignWarning#W" .. count["warnings"]
     end
     if count["hints"] ~= 0 then
-        hints = " %#LspDiagnosticsSignHint#💡 " .. count["hints"]
+        hints = " %#LspDiagnosticsSignHint#H" .. count["hints"]
     end
     if count["info"] ~= 0 then
-        info = " %#LspDiagnosticsSignInformation# " .. count["info"]
+        info = " %#LspDiagnosticsSignInformation#I" .. count["info"]
     end
-    return errors .. warnings .. hints .. info .. "%#Normal#"
+    if not errors or not warnings or not hints or not info then
+        return ""
+    else
+        return "" .. errors .. warnings .. hints .. info .. "%#Normal#"
+    end
 end
 
 local function filetype()
@@ -498,7 +502,6 @@ local vcs = function()
     }
 end
 
-
 Statusline = {}
 
 Statusline.active = function()
@@ -536,11 +539,3 @@ vim.api.nvim_exec2([[
   au WinEnter,BufEnter,FileType NvimTree setlocal statusline=%!v:lua.Statusline.short()
   augroup END
 ]], {})
-
--- Highlight on Yank
--- vim.cmd [[
---     augroup highlight_yank
---     autocmd!
---     au TextYankPost * silent! lua vim.highlight.on_yank({higroup="Visual",guibg="orange", timeout=350})
---     augroup END
---     ]]
