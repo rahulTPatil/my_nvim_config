@@ -3,15 +3,12 @@ vim.g.mapleader = " "
 vim.keymap.set("n", "<leader>ef", vim.cmd.Ex)
 vim.g.maplocalleader = "\\"
 vim.keymap.set('n', '<leader>u', vim.cmd.UndotreeToggle)
---vim.keymap.set('n', '<leader>ff', '<cmd>Telescope find_files theme=dropdown prompt_prefix=🔍<CR>', {})
---vim.keymap.set('n', '<leader>fs', '<cmd>Telescope live_grep theme=dropdown<CR>', {})
---vim.keymap.set('n', '<leader>gd', function() vim.lsp.buf.definitions() end, {})
 
 local opts = { noremap = true, silent = true }
-vim.keymap.set('n', '<space>e', vim.diagnostic.open_float, opts)
+vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, opts)
 vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, opts)
 vim.keymap.set('n', ']d', vim.diagnostic.goto_next, opts)
-vim.keymap.set('n', '<space>q', vim.diagnostic.setloclist, opts)
+vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, opts)
 
 vim.cmd [[autocmd BufWritePre * lua vim.lsp.buf.format()]]
 
@@ -37,6 +34,15 @@ vim.keymap.set("n", "<C-j>", "<cmd>cprev<CR>zz")
 vim.keymap.set("n", "<leader>k", "<cmd>lnext<CR>zz")
 vim.keymap.set("n", "<leader>j", "<cmd>lprev<CR>zz")
 vim.keymap.set("n", "<leader>s", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]])
+
+-- [[ Basic Autocommands ]]
+vim.api.nvim_create_autocmd('TextYankPost', {
+    desc = 'Highlight when yanking (copying) text',
+    group = vim.api.nvim_create_augroup('highlight-yank', { clear = true }),
+    callback = function()
+        vim.highlight.on_yank()
+    end,
+})
 
 -- LAZY PLUGIN MANAGER
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -372,6 +378,7 @@ local modes = {
     ["t"] = "TERMINAL",
 }
 
+
 local function mode()
     local current_mode = vim.api.nvim_get_mode().mode
     return string.format(" %s ", modes[current_mode]):upper()
@@ -415,16 +422,21 @@ end
 
 local function lsp()
     local count = {}
-    local levels = {
-        errors = "Error",
-        warnings = "Warn",
-        info = "Info",
-        hints = "Hint",
-    }
+    -- local levels = {
+    --     errors = "ERROR",
+    --     warnings = "WARN",
+    --     info = "INFO",
+    --     hints = "HINT",
+    -- }
+    --
+    -- for k, level in pairs(levels) do
+    --     count[k] = vim.tbl_count(vim.diagnostic.get(0, { severity = level }))
+    -- end
 
-    for k, level in pairs(levels) do
-        count[k] = vim.tbl_count(vim.diagnostic.get(0, { severity = level }))
-    end
+    count["errors"] = vim.tbl_count(vim.diagnostic.get(0, { severity = "ERROR" }))
+    count["warnings"] = vim.tbl_count(vim.diagnostic.get(0, { severity = "WARN" }))
+    count["info"] = vim.tbl_count(vim.diagnostic.get(0, { severity = "INFO" }))
+    count["hints"] = vim.tbl_count(vim.diagnostic.get(0, { severity = "HINT" }))
 
     local errors = ""
     local warnings = ""
@@ -432,18 +444,17 @@ local function lsp()
     local info = ""
 
     if count["errors"] ~= 0 then
-        errors = " %#LspDiagnosticsSignError# " .. count["errors"]
+        errors = " %#LspDiagnosticsSignError#x" .. count["errors"]
     end
     if count["warnings"] ~= 0 then
-        warnings = " %#LspDiagnosticsSignWarning# " .. count["warnings"]
+        warnings = " %#LspDiagnosticsSignWarning# " .. count["warnings"]
     end
     if count["hints"] ~= 0 then
-        hints = " %#LspDiagnosticsSignHint# " .. count["hints"]
+        hints = " %#LspDiagnosticsSignHint#💡 " .. count["hints"]
     end
     if count["info"] ~= 0 then
         info = " %#LspDiagnosticsSignInformation# " .. count["info"]
     end
-
     return errors .. warnings .. hints .. info .. "%#Normal#"
 end
 
@@ -514,22 +525,22 @@ function Statusline.inactive()
 end
 
 function Statusline.short()
-    return "%#StatusLineNC#   NvimTree"
+    return "%#StatusLineNC# ' NvimTree"
 end
 
-vim.api.nvim_exec([[
+vim.api.nvim_exec2([[
   augroup Statusline
   au!
   au WinEnter,BufEnter * setlocal statusline=%!v:lua.Statusline.active()
   au WinLeave,BufLeave * setlocal statusline=%!v:lua.Statusline.inactive()
   au WinEnter,BufEnter,FileType NvimTree setlocal statusline=%!v:lua.Statusline.short()
   augroup END
-]], false)
+]], {})
 
 -- Highlight on Yank
-vim.cmd [[
-    augroup highlight_yank
-    autocmd!
-    au TextYankPost * silent! lua vim.highlight.on_yank({higroup="Visual", timeout=350})
-    augroup END
-    ]]
+-- vim.cmd [[
+--     augroup highlight_yank
+--     autocmd!
+--     au TextYankPost * silent! lua vim.highlight.on_yank({higroup="Visual",guibg="orange", timeout=350})
+--     augroup END
+--     ]]
